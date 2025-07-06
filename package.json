@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "build:production": "cp prisma/schema.production.prisma prisma/schema.prisma && prisma generate && next build",
+    "build:production": "./scripts/deploy-production.sh && next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
