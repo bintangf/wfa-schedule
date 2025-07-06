@@ -198,4 +198,10 @@ For support or questions, please open an issue in the repository.
 
 ---
 
+## 🤖 AI Development
+
+This project was **100% built using GitHub Copilot with Claude Sonnet 4** - demonstrating the power of AI-assisted development for creating full-stack applications with complex business logic, responsive design, and production-ready features.
+
+---
+
 Built with ❤️ for Indonesian teams managing WFA schedules.
