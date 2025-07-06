@@ -11,6 +11,7 @@ import { AdminPasswordDialog } from '@/components/AdminPasswordDialog'
 import { Button } from '@/components/ui/button'
 import { useWFAStore } from '@/lib/store'
 import { Settings, UserPlus } from 'lucide-react'
+import { apiCache } from '@/lib/cache'
 
 interface UserLeave {
   id: string
@@ -67,6 +68,10 @@ export default function WFAHomePage() {
   const selectedDateHoliday = getHolidayForDate(selectedDate)
 
   const handleDataRefresh = async () => {
+    // Clear cache to force fresh data fetch
+    apiCache.clear()
+    console.log('Cache cleared for data refresh')
+    
     // Instead of full page reload, just refresh the current month data
     const { setLoading, currentMonth } = useWFAStore.getState()
     setLoading(true)

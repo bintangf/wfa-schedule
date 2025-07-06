@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { useWFAStore } from '@/lib/store'
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
+import { apiCache } from '@/lib/cache'
 
 interface UserLeaveDialogProps {
   open: boolean
@@ -79,6 +80,8 @@ export function UserLeaveDialog({ open, onOpenChange, selectedDate, onLeaveSaved
       
       if (response.ok) {
         removeUserLeave(leaveId)
+        // Invalidate cache to ensure fresh data on next fetch
+        apiCache.clear()
         onLeaveSaved()
         // Close both delete dialog and main dialog
         setDeleteDialogOpen(false)
@@ -146,6 +149,8 @@ export function UserLeaveDialog({ open, onOpenChange, selectedDate, onLeaveSaved
         throw new Error(data.error || 'Failed to save leave')
       }
 
+      // Invalidate cache to ensure fresh data on next fetch
+      apiCache.clear()
       onLeaveSaved()
       onOpenChange(false)
       

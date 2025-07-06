@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
-import { Shield, Plus, Trash2, RefreshCw } from 'lucide-react'
+import { Shield, Plus, Trash2, RefreshCw, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useWFAStore } from '@/lib/store'
+import { AdminLogsViewer } from '@/components/AdminLogsViewer'
 
 interface AdminPanelProps {
   open: boolean
@@ -29,6 +30,7 @@ export function AdminPanel({ open, onOpenChange, onDataRefresh, selectedDate }: 
   const [newHolidayDesc, setNewHolidayDesc] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [showAdminLogs, setShowAdminLogs] = useState(false)
 
   const { holidays } = useWFAStore()
   
@@ -237,6 +239,26 @@ export function AdminPanel({ open, onOpenChange, onDataRefresh, selectedDate }: 
               )}
             </CardContent>
           </Card>
+
+          {/* Admin Activity Logs */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">📋 Admin Activity Logs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-3">
+                View all administrative actions including leave management and holiday changes
+              </p>
+              <Button 
+                onClick={() => setShowAdminLogs(true)}
+                variant="outline"
+                className="w-full"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                View Admin Logs
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         <DialogFooter>
@@ -244,6 +266,12 @@ export function AdminPanel({ open, onOpenChange, onDataRefresh, selectedDate }: 
             Close
           </Button>
         </DialogFooter>
+        
+        {/* Admin Logs Viewer */}
+        <AdminLogsViewer 
+          open={showAdminLogs} 
+          onOpenChange={setShowAdminLogs} 
+        />
         
         <div className="text-xs text-muted-foreground border-t pt-3">
           <p>🔐 Admin actions are logged with your local IP for security.</p>

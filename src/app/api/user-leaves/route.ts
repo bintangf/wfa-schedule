@@ -136,6 +136,25 @@ export async function POST(request: NextRequest) {
       ? start.toLocaleDateString()
       : `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`
 
+    // Log admin action if admin is creating leave for someone else
+    const isAdmin = validateAdminSession(request)
+    if (isAdmin) {
+      await prisma.adminLog.create({
+        data: {
+          action: 'ADD_USER_LEAVE',
+          details: JSON.stringify({
+            leaveId: leave.id,
+            initials: leave.initials,
+            dateRange,
+            startDate: leave.startDate.toISOString(),
+            endDate: leave.endDate.toISOString(),
+            createdByAdmin: true
+          }),
+          localIP: clientIP
+        }
+      })
+    }
+
     return NextResponse.json({
       message: 'Successfully created leave',
       leave,
@@ -188,10 +207,33 @@ export async function DELETE(request: NextRequest) {
         { status: 403 }
       )
     }
-    
+
     const deletedLeave = await prisma.userLeave.delete({
       where: { id }
     })
+
+    // Log admin action if admin is deleting leave
+    if (isAdmin) {
+      const dateRange = leave.startDate.getTime() === leave.endDate.getTime() 
+        ? leave.startDate.toLocaleDateString()
+        : `${leave.startDate.toLocaleDateString()} - ${leave.endDate.toLocaleDateString()}`
+
+      await prisma.adminLog.create({
+        data: {
+          action: 'DELETE_USER_LEAVE',
+          details: JSON.stringify({
+            leaveId: leave.id,
+            initials: leave.initials,
+            dateRange,
+            startDate: leave.startDate.toISOString(),
+            endDate: leave.endDate.toISOString(),
+            originalIP: leave.localIP,
+            deletedByAdmin: true
+          }),
+          localIP: clientIP
+        }
+      })
+    }
     
     return NextResponse.json({
       message: 'Leave deleted successfully',
@@ -316,6 +358,32 @@ export async function PUT(request: NextRequest) {
     const dateRange = start.getTime() === end.getTime() 
       ? start.toLocaleDateString()
       : `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`
+
+    // Log admin action if admin is updating leave
+    if (isAdmin) {
+      const originalDateRange = existingLeave.startDate.getTime() === existingLeave.endDate.getTime() 
+        ? existingLeave.startDate.toLocaleDateString()
+        : `${existingLeave.startDate.toLocaleDateString()} - ${existingLeave.endDate.toLocaleDateString()}`
+
+      await prisma.adminLog.create({
+        data: {
+          action: 'UPDATE_USER_LEAVE',
+          details: JSON.stringify({
+            leaveId: existingLeave.id,
+            initials: existingLeave.initials,
+            originalDateRange,
+            newDateRange: dateRange,
+            originalStartDate: existingLeave.startDate.toISOString(),
+            originalEndDate: existingLeave.endDate.toISOString(),
+            newStartDate: updatedLeave.startDate.toISOString(),
+            newEndDate: updatedLeave.endDate.toISOString(),
+            originalIP: existingLeave.localIP,
+            updatedByAdmin: true
+          }),
+          localIP: clientIP
+        }
+      })
+    }
 
     return NextResponse.json({
       message: 'Leave updated successfully',

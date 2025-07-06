@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateAdminSession } from '@/lib/auth-utils'
+import { prisma } from '@/lib/prisma'
+import { getClientIPv4 } from '@/lib/ip-utils'
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,6 +27,20 @@ export async function POST(request: NextRequest) {
     
     if (isValid) {
       const sessionToken = generateAdminSession()
+      const ip = getClientIPv4(request)
+      
+      // Log successful admin login
+      await prisma.adminLog.create({
+        data: {
+          action: 'ADMIN_LOGIN',
+          details: JSON.stringify({
+            timestamp: new Date().toISOString(),
+            sessionToken: sessionToken.substring(0, 8) + '...' // Only log first 8 chars for security
+          }),
+          localIP: ip
+        }
+      })
+      
       const response = NextResponse.json({ 
         isValid: true,
         message: 'Authentication successful'
@@ -56,8 +72,21 @@ export async function POST(request: NextRequest) {
 }
 
 // DELETE /api/admin-auth - Logout admin
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
   try {
+    const ip = getClientIPv4(request)
+    
+    // Log admin logout
+    await prisma.adminLog.create({
+      data: {
+        action: 'ADMIN_LOGOUT',
+        details: JSON.stringify({
+          timestamp: new Date().toISOString()
+        }),
+        localIP: ip
+      }
+    })
+    
     const response = NextResponse.json({ 
       message: 'Logged out successfully' 
     })

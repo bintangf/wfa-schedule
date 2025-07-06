@@ -47,6 +47,20 @@ export async function GET(request: NextRequest) {
     
     // If we have data, return it
     if (existingHolidays.length > 0) {
+      // Log public holiday fetch (read from DB)
+      const ip = getClientIPv4(request)
+      await prisma.adminLog.create({
+        data: {
+          action: 'FETCH_HOLIDAYS_PUBLIC',
+          details: JSON.stringify({
+            year,
+            source: 'database',
+            fetchedAt: new Date().toISOString(),
+            count: existingHolidays.length
+          }),
+          localIP: ip
+        }
+      })
       return NextResponse.json(existingHolidays)
     }
     
@@ -78,6 +92,26 @@ export async function GET(request: NextRequest) {
     
     // Auto-regenerate WFA schedule for all affected months - REMOVED (now computed on-the-fly)
     console.log(`Saved ${savedHolidays.length} holidays for ${year} - WFA schedule will be computed on-the-fly`)
+    
+    // Log admin action for fetching holidays from external API (only if new holidays were saved)
+    if (savedHolidays.length > 0) {
+      const isAdmin = validateAdminSession(request)
+      if (isAdmin) {
+        const ip = getClientIPv4(request)
+        await prisma.adminLog.create({
+          data: {
+            action: 'FETCH_HOLIDAYS',
+            details: JSON.stringify({
+              year,
+              holidayCount: savedHolidays.length,
+              source: 'grei.pythonanywhere.com',
+              fetchedAt: new Date().toISOString()
+            }),
+            localIP: ip
+          }
+        })
+      }
+    }
     
     return NextResponse.json(savedHolidays)
   } catch (error) {

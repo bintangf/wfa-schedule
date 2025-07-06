@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useWFAStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
+import { cachedFetch, apiCache } from '@/lib/cache'
 
 interface ScheduleResponse {
   id: string
@@ -112,51 +113,62 @@ export function WFACalendarGrid({ onEditLeave }: WFACalendarGridProps) {
       const startDateStr = format(calendarStart, 'yyyy-MM-dd')
       const endDateStr = format(calendarEnd, 'yyyy-MM-dd')
       
-      // Fetch WFA schedules and user leaves in parallel for faster loading
-      const [scheduleResponse, userLeavesResponse] = await Promise.all([
-        fetch(`/api/wfa-schedule?month=${month}&startDate=${startDateStr}&endDate=${endDateStr}`),
-        fetch(`/api/user-leaves?month=${month}`)
+      // Use cached fetch for better performance
+      const scheduleUrl = `/api/wfa-schedule?month=${month}&startDate=${startDateStr}&endDate=${endDateStr}`
+      const leavesUrl = `/api/user-leaves?month=${month}`
+      
+      // Fetch WFA schedules and user leaves in parallel with caching
+      const [scheduleData, leavesData] = await Promise.all([
+        cachedFetch<any>(scheduleUrl, undefined, 5 * 60 * 1000), // Cache schedules for 5 minutes
+        cachedFetch<any>(leavesUrl, undefined, 2 * 60 * 1000)    // Cache leaves for 2 minutes (more dynamic)
       ])
       
-      if (scheduleResponse.ok) {
-        const scheduleData = await scheduleResponse.json()
-        
-        const parsedSchedules = scheduleData.schedules.map((schedule: ScheduleResponse) => ({
-          ...schedule,
-          date: new Date(schedule.date),
-          createdAt: new Date(schedule.createdAt),
-          updatedAt: new Date(schedule.updatedAt)
-        }))
-        
-        const parsedHolidays = scheduleData.holidays.map((holiday: HolidayResponse) => ({
-          ...holiday,
-          date: new Date(holiday.date),
-          createdAt: new Date(holiday.createdAt),
-          updatedAt: new Date(holiday.updatedAt)
-        }))
-        
-        setSchedules(parsedSchedules)
-        setHolidays(parsedHolidays)
-      }
+      // Process schedule data
+      const parsedSchedules = scheduleData.schedules.map((schedule: ScheduleResponse) => ({
+        ...schedule,
+        date: new Date(schedule.date),
+        createdAt: new Date(schedule.createdAt),
+        updatedAt: new Date(schedule.updatedAt)
+      }))
       
-      if (userLeavesResponse.ok) {
-        const leavesData = await userLeavesResponse.json()
-        const parsedLeaves = leavesData.map((leave: LeaveResponse) => ({
-          ...leave,
-          // Normalize dates to local timezone to avoid UTC comparison issues
-          startDate: new Date(new Date(leave.startDate).getFullYear(), new Date(leave.startDate).getMonth(), new Date(leave.startDate).getDate()),
-          endDate: new Date(new Date(leave.endDate).getFullYear(), new Date(leave.endDate).getMonth(), new Date(leave.endDate).getDate()),
-          createdAt: new Date(leave.createdAt),
-          updatedAt: new Date(leave.updatedAt)
-        }))
-        setUserLeaves(parsedLeaves)
-      }
+      const parsedHolidays = scheduleData.holidays.map((holiday: HolidayResponse) => ({
+        ...holiday,
+        date: new Date(holiday.date),
+        createdAt: new Date(holiday.createdAt),
+        updatedAt: new Date(holiday.updatedAt)
+      }))
+      
+      setSchedules(parsedSchedules)
+      setHolidays(parsedHolidays)
+      
+      // Process leaves data
+      const parsedLeaves = leavesData.map((leave: LeaveResponse) => ({
+        ...leave,
+        // Normalize dates to local timezone to avoid UTC comparison issues
+        startDate: new Date(new Date(leave.startDate).getFullYear(), new Date(leave.startDate).getMonth(), new Date(leave.startDate).getDate()),
+        endDate: new Date(new Date(leave.endDate).getFullYear(), new Date(leave.endDate).getMonth(), new Date(leave.endDate).getDate()),
+        createdAt: new Date(leave.createdAt),
+        updatedAt: new Date(leave.updatedAt)
+      }))
+      setUserLeaves(parsedLeaves)
+      
+      // Prefetch adjacent months for better UX
+      setTimeout(() => {
+        apiCache.prefetchAdjacentMonths(month)
+      }, 500) // Small delay to avoid blocking current render
       
     } catch (error) {
       console.error('Failed to fetch WFA data:', error)
     } finally {
       setLoading(false)
     }
+  }
+
+  // Helper function to invalidate cache when data changes
+  const invalidateCache = () => {
+    // Clear all cached user leaves data
+    apiCache.clear()
+    console.log('Cache invalidated - will fetch fresh data')
   }
 
   const monthStart = startOfMonth(currentMonth)
