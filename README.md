@@ -205,11 +205,45 @@ Perfect for teams that need:
 
 ## 🚀 Deployment
 
-Ready for deployment on:
-- **Vercel** (recommended) - Zero configuration
-- **Netlify** - With serverless functions
-- **Railway** - With PostgreSQL database
-- **Any Node.js hosting** - With database connection
+### Production with Supabase + Vercel (Recommended)
+
+1. **Create Supabase Project**
+   - Go to [supabase.com](https://supabase.com) and create new project
+   - Go to Settings > Database and copy the **Prisma connection string**
+   - Should look like: `postgres://postgres.xxx:password@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true`
+
+2. **Deploy to Vercel**
+   ```bash
+   # Connect your repository to Vercel
+   vercel --prod
+   ```
+
+3. **Set Environment Variables in Vercel Dashboard**
+   - Go to your project in Vercel Dashboard
+   - Settings > Environment Variables
+   - Add these variables:
+   
+   ```env
+   DATABASE_URL=postgres://postgres.YOUR_ID:YOUR_PASS@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true
+   ADMIN_PASSWORD=your_secure_password
+   ADMIN_LOG_MAX_ENTRIES=5000
+   NEXT_PUBLIC_WFA_BLOCKS=A,B,C,D
+   NEXT_PUBLIC_WFA_PER_BLOCK_PATTERN=["WFA", "WFO", "WFO", "WFO"]
+   NEXT_PUBLIC_WFA_START_DATE=2025-01-01
+   NEXT_PUBLIC_WFA_START_PATTERN=A
+   ```
+
+4. **Run Database Migration**
+   ```bash
+   # In your local environment with production DATABASE_URL
+   npx prisma migrate deploy
+   ```
+
+### Other Deployment Options
+
+- **Netlify** - With serverless functions + external PostgreSQL
+- **Railway** - With built-in PostgreSQL database  
+- **Any Node.js hosting** - With PostgreSQL database connection
 
 ## 📄 License
 
