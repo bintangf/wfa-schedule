@@ -16,7 +16,7 @@ export interface CacheMetrics {
 
 // Enhanced cache with compression and storage persistence
 class APICache {
-  private cache = new Map<string, CacheEntry<any>>()
+  private cache = new Map<string, CacheEntry<unknown>>()
   private defaultTTL = 5 * 60 * 1000 // 5 minutes
   private metrics: CacheMetrics = { hits: 0, misses: 0, totalRequests: 0, hitRate: 0 }
 

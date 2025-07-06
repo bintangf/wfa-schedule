@@ -193,7 +193,7 @@ export default function WFAHomePage() {
               🏢 WFA Schedule Manager
             </h1>
             <p className="text-muted-foreground">
-              Team Work From Anywhere (WFA) scheduling with A, B, C, D rotation
+              Team Work From Anywhere (WFA) scheduling rotation
             </p>
           </div>
           

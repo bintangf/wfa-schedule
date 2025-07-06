@@ -22,40 +22,26 @@ import { useWFAStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { cachedFetch, apiCache } from '@/lib/cache'
 
-interface ScheduleResponse {
-  id: string
-  date: string
-  schedule: string
-  createdAt: string
-  updatedAt: string
-}
+// Gunakan WFASchedule, HolidayResponse, UserLeave dari store agar konsisten tipe
+type WFASchedule = import("@/lib/store").WFASchedule;
+type PublicHoliday = import("@/lib/store").PublicHoliday;
+type UserLeave = import("@/lib/store").UserLeave;
 
-interface HolidayResponse {
-  id: string
-  date: string
-  name: string
-  description?: string
-  isManual: boolean
-  createdAt: string
-  updatedAt: string
+// Color for status
+const STATUS_COLORS: Record<string, string> = {
+  WFA: '#3b82f6', // Blue (default, fallback)
+  WFO: '#10b981', // Green
+  WFH: '#f59e0b', // Yellow
+  DEFAULT: '#6b7280' // Gray
 }
-
-interface LeaveResponse {
-  id: string
-  startDate: string
-  endDate: string
-  initials: string
-  reason?: string
-  localIP: string
-  createdAt: string
-  updatedAt: string
-}
-
-const WFA_COLORS = {
-  A: '#3b82f6', // Blue
-  B: '#10b981', // Green
-  C: '#f59e0b', // Yellow
-  D: '#ef4444'  // Red
+// Color for each block (A, B, C, D, ...)
+const BLOCK_COLORS: Record<string, string> = {
+  A: '#2563eb', // Bright blue
+  B: '#22c55e', // Bright green
+  C: '#f59e42', // Orange
+  D: '#ef4444', // Bright red
+  E: '#eab308', // Yellow (optional)
+  F: '#a21caf', // Purple (optional)
 }
 
 interface WFACalendarGridProps {
@@ -114,43 +100,53 @@ export function WFACalendarGrid({ onEditLeave }: WFACalendarGridProps) {
       const endDateStr = format(calendarEnd, 'yyyy-MM-dd')
       
       // Use cached fetch for better performance
-      const scheduleUrl = `/api/wfa-schedule?month=${month}&startDate=${startDateStr}&endDate=${endDateStr}`
+      // Hanya gunakan startDateStr & endDateStr, jangan pakai ?month=...
+      const scheduleUrl = `/api/wfa-schedule?startDate=${startDateStr}&endDate=${endDateStr}`
       const leavesUrl = `/api/user-leaves?month=${month}`
       
       // Fetch WFA schedules and user leaves in parallel with caching
-      const [scheduleData, leavesData] = await Promise.all([
-        cachedFetch<any>(scheduleUrl, undefined, 5 * 60 * 1000), // Cache schedules for 5 minutes
-        cachedFetch<any>(leavesUrl, undefined, 2 * 60 * 1000)    // Cache leaves for 2 minutes (more dynamic)
+      const [scheduleData, leavesData]: [{schedules: WFASchedule[], holidays: PublicHoliday[]}, UserLeave[]] = await Promise.all([
+        cachedFetch<{schedules: WFASchedule[], holidays: PublicHoliday[]}>(scheduleUrl, undefined, 5 * 60 * 1000),
+        cachedFetch<UserLeave[]>(leavesUrl, undefined, 2 * 60 * 1000)
       ])
       
       // Process schedule data
-      const parsedSchedules = scheduleData.schedules.map((schedule: ScheduleResponse) => ({
+      const parsedSchedules = scheduleData.schedules.map((schedule) => ({
         ...schedule,
         date: new Date(schedule.date),
         createdAt: new Date(schedule.createdAt),
         updatedAt: new Date(schedule.updatedAt)
-      }))
-      
-      const parsedHolidays = scheduleData.holidays.map((holiday: HolidayResponse) => ({
+      })) as WFASchedule[]
+      const parsedHolidays = scheduleData.holidays.map((holiday) => ({
         ...holiday,
         date: new Date(holiday.date),
         createdAt: new Date(holiday.createdAt),
         updatedAt: new Date(holiday.updatedAt)
-      }))
-      
-      setSchedules(parsedSchedules)
+      })) as PublicHoliday[]
+      setSchedules((prev: WFASchedule[] = []) => {
+        const newIds = new Set(parsedSchedules.map((s: WFASchedule) => s.id))
+        const filteredPrev = prev.filter((s: WFASchedule) => !newIds.has(s.id))
+        const all = [...filteredPrev, ...parsedSchedules]
+        return all
+      })
       setHolidays(parsedHolidays)
       
       // Process leaves data
-      const parsedLeaves = leavesData.map((leave: LeaveResponse) => ({
+      const parsedLeaves = leavesData.map((leave) => ({
         ...leave,
-        // Normalize dates to local timezone to avoid UTC comparison issues
         startDate: new Date(new Date(leave.startDate).getFullYear(), new Date(leave.startDate).getMonth(), new Date(leave.startDate).getDate()),
         endDate: new Date(new Date(leave.endDate).getFullYear(), new Date(leave.endDate).getMonth(), new Date(leave.endDate).getDate()),
         createdAt: new Date(leave.createdAt),
         updatedAt: new Date(leave.updatedAt)
-      }))
+      })) as UserLeave[]
       setUserLeaves(parsedLeaves)
+      
+      // Gabungkan dengan schedules lama, dedup by id (hanya replace id yang sama)
+      const prevSchedules = useWFAStore.getState().schedules as WFASchedule[]
+      const newIds = new Set(parsedSchedules.map((s: WFASchedule) => s.id))
+      const filteredPrev = prevSchedules.filter((s: WFASchedule) => !newIds.has(s.id))
+      const mergedSchedules = [...filteredPrev, ...parsedSchedules]
+      setSchedules(mergedSchedules)
       
       // Prefetch adjacent months for better UX
       setTimeout(() => {
@@ -162,13 +158,6 @@ export function WFACalendarGrid({ onEditLeave }: WFACalendarGridProps) {
     } finally {
       setLoading(false)
     }
-  }
-
-  // Helper function to invalidate cache when data changes
-  const invalidateCache = () => {
-    // Clear all cached user leaves data
-    apiCache.clear()
-    console.log('Cache invalidated - will fetch fresh data')
   }
 
   const monthStart = startOfMonth(currentMonth)
@@ -228,6 +217,18 @@ export function WFACalendarGrid({ onEditLeave }: WFACalendarGridProps) {
     }
   }
 
+  // --- Tambahan: Ambil semua blok WFA per hari ---
+  // Helper untuk dapatkan semua blok WFA pada tanggal tertentu
+  function getWFABlocksForDate(schedules: WFASchedule[], date: Date) {
+    return schedules.filter(s =>
+      s.date instanceof Date &&
+      s.date.getFullYear() === date.getFullYear() &&
+      s.date.getMonth() === date.getMonth() &&
+      s.date.getDate() === date.getDate() &&
+      s.status === 'WFA'
+    )
+  }
+
   const renderDayContent = (date: Date) => {
     const schedule = getScheduleForDate(date)
     const holiday = getHolidayForDate(date)
@@ -235,6 +236,9 @@ export function WFACalendarGrid({ onEditLeave }: WFACalendarGridProps) {
     const isWeekendDay = isWeekend(date)
     const isToday = isSameDay(date, new Date())
     
+    // Ganti: dapatkan semua blok WFA pada hari tsb
+    const wfaBlocks = getWFABlocksForDate(useWFAStore.getState().schedules, date)
+
     return (
       <div className="w-full h-full flex flex-col">
         {/* Date number */}
@@ -245,14 +249,19 @@ export function WFACalendarGrid({ onEditLeave }: WFACalendarGridProps) {
           )}>
             {format(date, 'd')}
           </span>
-          
-          {/* WFA Schedule Badge */}
-          {schedule && !holiday && !isWeekendDay && (
-            <div 
-              className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
-              style={{ backgroundColor: WFA_COLORS[schedule.schedule as keyof typeof WFA_COLORS] }}
-            >
-              {schedule.schedule}
+          {/* WFA Status Badges: tampilkan semua blok WFA */}
+          {schedule && schedule.status === "WFA" && !holiday && !isWeekendDay && (
+            <div className="flex gap-1">
+              {wfaBlocks.map((block) => (
+                <div
+                  key={block.id}
+                  className="w-7 h-5 rounded flex items-center justify-center text-xs font-bold text-white px-1 shadow"
+                  style={{ backgroundColor: BLOCK_COLORS[block.block] || STATUS_COLORS.WFA }}
+                  title={`Blok: ${block.block}`}
+                >
+                  {block.block}
+                </div>
+              ))}
             </div>
           )}
         </div>

@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { RefreshCw, Eye, Calendar, User, Clock } from 'lucide-react'
@@ -28,13 +28,7 @@ export function AdminLogsViewer({ open, onOpenChange }: AdminLogsViewerProps) {
   const [filter, setFilter] = useState<string>('')
   const [expandedLog, setExpandedLog] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (open) {
-      fetchLogs()
-    }
-  }, [open])
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setIsLoading(true)
     try {
       const url = filter 
@@ -44,7 +38,7 @@ export function AdminLogsViewer({ open, onOpenChange }: AdminLogsViewerProps) {
       const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
-        setLogs(data.logs.map((log: any) => ({
+        setLogs(data.logs.map((log: AdminLog & { createdAt: string | Date }) => ({
           ...log,
           createdAt: new Date(log.createdAt).toISOString()
         })))
@@ -56,7 +50,13 @@ export function AdminLogsViewer({ open, onOpenChange }: AdminLogsViewerProps) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [filter])
+
+  useEffect(() => {
+    if (open) {
+      fetchLogs()
+    }
+  }, [open, fetchLogs])
 
   const getActionColor = (action: string) => {
     switch (action) {

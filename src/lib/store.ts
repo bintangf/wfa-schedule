@@ -4,7 +4,8 @@ import { create } from 'zustand'
 export interface WFASchedule {
   id: string
   date: Date
-  schedule: string // A, B, C, D
+  block: string
+  status: string
   createdAt: Date
   updatedAt: Date
 }
@@ -43,7 +44,7 @@ interface WFAStore {
   userIP: string | null
   
   // Actions
-  setSchedules: (schedules: WFASchedule[]) => void
+  setSchedules: (schedules: WFASchedule[] | ((prev: WFASchedule[]) => WFASchedule[])) => void
   setHolidays: (holidays: PublicHoliday[]) => void
   setUserLeaves: (leaves: UserLeave[]) => void
   addUserLeave: (leave: UserLeave) => void
@@ -75,13 +76,19 @@ export const useWFAStore = create<WFAStore>((set, get) => ({
   selectedDate: new Date(),
   currentMonth: new Date().toISOString().slice(0, 7), // YYYY-MM
   isLoading: false,
-  isDarkMode: false,
+  isDarkMode: true,
   isAdminMode: false,
   isAdminAuthenticated: false,
   userIP: null,
   
   // Actions
-  setSchedules: (schedules) => set({ schedules }),
+  setSchedules: (updaterOrSchedules: WFASchedule[] | ((prev: WFASchedule[]) => WFASchedule[])) => set((state) => {
+    if (typeof updaterOrSchedules === 'function') {
+      return { schedules: (updaterOrSchedules as (prev: WFASchedule[]) => WFASchedule[])(state.schedules) }
+    } else {
+      return { schedules: updaterOrSchedules }
+    }
+  }),
   
   setHolidays: (holidays) => set({ holidays }),
   

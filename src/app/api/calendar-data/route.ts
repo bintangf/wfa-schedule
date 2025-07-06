@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { isWeekend, format, addDays, startOfMonth, endOfMonth } from 'date-fns'
+import { startOfMonth, endOfMonth } from 'date-fns'
 
 // Combined API endpoint to reduce round trips
 // GET /api/calendar-data?month=YYYY-MM
@@ -70,6 +70,8 @@ export async function GET(request: NextRequest) {
 // Helper function - move from wfa-schedule/route.ts
 async function computeWFASchedule(startDate: Date, endDate: Date) {
   // Implementation here (copy from existing WFA schedule API)
-  // ... existing computeWFASchedule code
+  // For now, return empty results - this function should be implemented
+  // if this route is intended to be used
+  console.log(`Computing WFA schedule from ${startDate.toISOString()} to ${endDate.toISOString()}`)
   return { schedules: [], holidays: [] }
 }
