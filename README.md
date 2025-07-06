@@ -11,9 +11,7 @@ A modern web application for managing team Work From Anywhere (WFA) schedules wi
 - **Calendar grid** with full week view including previous/next month dates
 
 ### 🇮🇩 Indonesian Holiday Integration
-- **Dual API sources** for comprehensive holiday data:
-  - Primary: `api-harilibur.vercel.app`
-  - Secondary: `grei.pythonanywhere.com`
+- **API integration** for comprehensive holiday data from `grei.pythonanywhere.com`
 - **Manual holiday management** by administrators
 - **Automatic deduplication** of holidays from multiple sources
 
@@ -64,8 +62,11 @@ A modern web application for managing team Work From Anywhere (WFA) schedules wi
 
 3. **Set up environment variables**
    ```bash
-   cp .env.example .env
-   # Edit .env with your database URL
+   cp example.env .env
+   # Edit .env with your settings:
+   # - Set DATABASE_URL (SQLite for dev, PostgreSQL for prod)
+   # - Set ADMIN_PASSWORD for admin access
+   # - Configure WFA blocks and patterns as needed
    ```
 
 4. **Set up the database**
@@ -166,6 +167,32 @@ The A/B/C/D rotation follows these rules:
 3. **Holiday aware** - Schedule shifts when holidays occur
 4. **Weekend skipping** - Saturdays and Sundays don't affect rotation
 5. **Monthly generation** - Schedules generated per month as needed
+
+## ⚙️ WFA Configuration
+
+Configure your WFA schedule through environment variables:
+
+```bash
+# Define available blocks
+NEXT_PUBLIC_WFA_BLOCKS="A,B,C,D"
+
+# Define pattern for each block (4-day cycle example)
+NEXT_PUBLIC_WFA_PER_BLOCK_PATTERN=["WFA", "WFO", "WFO", "WFO"]
+
+# Set schedule start date and initial block
+NEXT_PUBLIC_WFA_START_DATE="2025-01-01"
+NEXT_PUBLIC_WFA_START_PATTERN="A"
+```
+
+**Pattern Options:**
+- `WFA` - Work From Anywhere (shows badge on calendar)
+- `WFO` - Work From Office (no badge shown)
+- `WFH` - Work From Home (no badge shown)
+
+**Example Configurations:**
+- **Every 4th day WFA**: `["WFA", "WFO", "WFO", "WFO"]`
+- **Alternating days**: `["WFA", "WFO"]`
+- **Weekly pattern**: `["WFA", "WFA", "WFA", "WFA", "WFA", "WFO", "WFO"]`
 
 ## 🏢 Team Usage
 
