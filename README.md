@@ -62,7 +62,7 @@ A modern web application for managing team Work From Anywhere (WFA) schedules wi
 
 3. **Set up environment variables**
    ```bash
-   cp example.env .env
+   cp .env.example .env
    # Edit .env with your settings:
    # - Set DATABASE_URL (SQLite for dev, PostgreSQL for prod)
    # - Set ADMIN_PASSWORD for admin access
