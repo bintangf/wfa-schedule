@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Tanggal Merah (Public Holidays)
+model PublicHoliday {
+  id          String   @id @default(cuid())
+  date        DateTime @unique
+  name        String
+  description String?
+  isManual    Boolean  @default(false) // true = manual by admin, false = from API
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("public_holidays")
+}
+
+// User Leave/Cuti
+model UserLeave {
+  id        String   @id @default(cuid())
+  startDate DateTime
+  endDate   DateTime
+  initials  String   // User initials (max 3 chars)
+  localIP   String   // Local IPv4 for tracking
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_leaves")
+}
+
+// Admin Actions Log
+model AdminLog {
+  id        String   @id @default(cuid())
+  action    String   // "ADD_HOLIDAY", "REMOVE_HOLIDAY", "SHIFT_SCHEDULE"
+  details   String   // JSON details
+  localIP   String   // Admin local IP
+  createdAt DateTime @default(now())
+
+  @@map("admin_logs")
+}
