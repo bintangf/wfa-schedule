@@ -217,6 +217,8 @@ Perfect for teams that need:
    # Connect your repository to Vercel
    vercel --prod
    ```
+   
+   **Note**: The project includes automatic Prisma Client generation in the build process (`prisma generate && next build`) to fix Vercel caching issues.
 
 3. **Set Environment Variables in Vercel Dashboard**
    - Go to your project in Vercel Dashboard
@@ -233,10 +235,21 @@ Perfect for teams that need:
    NEXT_PUBLIC_WFA_START_PATTERN=A
    ```
 
-4. **Run Database Migration**
+4. **Deploy to Vercel**
    ```bash
-   # In your local environment with production DATABASE_URL
-   npx prisma migrate deploy
+   # The vercel.json is configured to automatically:
+   # 1. Copy PostgreSQL schema
+   # 2. Run migrations
+   # 3. Generate Prisma client
+   # 4. Build the application
+   
+   vercel --prod
+   ```
+
+5. **Alternative: Manual Migration (if needed)**
+   ```bash
+   # If automatic migration fails, run manually:
+   ./scripts/deploy-production.sh
    ```
 
 ### Other Deployment Options
@@ -244,6 +257,13 @@ Perfect for teams that need:
 - **Netlify** - With serverless functions + external PostgreSQL
 - **Railway** - With built-in PostgreSQL database  
 - **Any Node.js hosting** - With PostgreSQL database connection
+
+### Development vs Production
+
+| Environment | Database | Schema File | Command |
+|-------------|----------|-------------|---------|
+| Development | SQLite | `schema.prisma` | `npm run dev` |
+| Production | PostgreSQL | `schema.production.prisma` | `npm run build:production` |
 
 ## 📄 License
 
