@@ -13,7 +13,7 @@ A modern web application for managing team Work From Anywhere (WFA) schedules wi
 ### 🇮🇩 Indonesian Holiday Integration
 - **API integration** for comprehensive holiday data from `grei.pythonanywhere.com`
 - **Manual holiday management** by administrators
-- **Automatic deduplication** of holidays from multiple sources
+- **Automatic deduplication** of holidays
 
 ### 👥 Leave Management
 - **Range-based leave requests** - single day or multiple days including weekends
@@ -213,7 +213,7 @@ Ready for deployment on:
 
 ## 📄 License
 
-This project is open source and available under the MIT License.
+This project is open source and available under the [MIT License](LICENSE).
 
 ## 🤝 Contributing
 
