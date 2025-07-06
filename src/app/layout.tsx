@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "📅 WFA Calendar",
+  title: "WFA Calendar",
   description: "Work From Anywhere (WFA) calendar for team schedule management",
 };
 
